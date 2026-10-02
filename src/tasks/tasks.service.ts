@@ -13,20 +13,25 @@ export class TasksService {
     @InjectRepository(Task) private readonly tasks: Repository<Task>,
   ) {}
 
-  create(dto: CreateTaskDto): Promise<Task> {
-    return this.tasks.save(this.tasks.create(dto));
+  create(ownerId: string, dto: CreateTaskDto): Promise<Task> {
+    return this.tasks.save(this.tasks.create({ ...dto, ownerId }));
   }
 
-  async findAll(query: QueryTasksDto): Promise<PaginatedDto<Task>> {
+  async findAll(
+    ownerId: string,
+    query: QueryTasksDto,
+  ): Promise<PaginatedDto<Task>> {
     const { page, limit, status, priority, search, sortBy, order } = query;
 
-    const qb = this.tasks.createQueryBuilder('task');
+    const qb = this.tasks
+      .createQueryBuilder('task')
+      .where('task.ownerId = :ownerId', { ownerId });
     if (status) qb.andWhere('task.status = :status', { status });
     if (priority) qb.andWhere('task.priority = :priority', { priority });
     if (search) {
       // Escape LIKE wildcards so user input is matched literally.
       const escaped = search.replace(/[\\%_]/g, '\\$&');
-      qb.andWhere("LOWER(task.title) LIKE LOWER(:search) ESCAPE '\\'", {
+      qb.andWhere("task.title ILIKE :search ESCAPE '\\'", {
         search: `%${escaped}%`,
       });
     }
@@ -45,19 +50,20 @@ export class TasksService {
     };
   }
 
-  async findOne(id: string): Promise<Task> {
-    const task = await this.tasks.findOneBy({ id });
+  // Tasks are always looked up by owner too: someone else's task is a 404, not a 403.
+  async findOne(ownerId: string, id: string): Promise<Task> {
+    const task = await this.tasks.findOneBy({ id, ownerId });
     if (!task) throw new NotFoundException(`Task ${id} not found`);
     return task;
   }
 
-  async update(id: string, dto: UpdateTaskDto): Promise<Task> {
-    const task = await this.findOne(id);
+  async update(ownerId: string, id: string, dto: UpdateTaskDto): Promise<Task> {
+    const task = await this.findOne(ownerId, id);
     return this.tasks.save(Object.assign(task, dto));
   }
 
-  async remove(id: string): Promise<void> {
-    const { affected } = await this.tasks.delete({ id });
+  async remove(ownerId: string, id: string): Promise<void> {
+    const { affected } = await this.tasks.delete({ id, ownerId });
     if (!affected) throw new NotFoundException(`Task ${id} not found`);
   }
 }

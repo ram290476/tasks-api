@@ -1,4 +1,5 @@
 // Runs before test modules are imported, so ConfigModule validation sees these.
 process.env.NODE_ENV = 'test';
-process.env.DB_PATH = ':memory:';
-process.env.THROTTLE_LIMIT = '1000';
+process.env.DATABASE_URL ??=
+  'postgres://postgres:postgres@localhost:5432/tasks_test';
+process.env.JWT_SECRET ??= 'test-secret-test-secret-test-secret-1234';

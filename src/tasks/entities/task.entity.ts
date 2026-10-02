@@ -3,9 +3,12 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { User } from '../../users/user.entity';
 
 export enum TaskStatus {
   Todo = 'todo',
@@ -20,6 +23,7 @@ export enum TaskPriority {
 }
 
 @Entity('tasks')
+@Index(['ownerId', 'status'])
 export class Task {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -30,23 +34,35 @@ export class Task {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  @Index()
-  @Column({ type: 'simple-enum', enum: TaskStatus, default: TaskStatus.Todo })
+  @Column({
+    type: 'enum',
+    enum: TaskStatus,
+    enumName: 'task_status',
+    default: TaskStatus.Todo,
+  })
   status: TaskStatus;
 
   @Column({
-    type: 'simple-enum',
+    type: 'enum',
     enum: TaskPriority,
+    enumName: 'task_priority',
     default: TaskPriority.Medium,
   })
   priority: TaskPriority;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   dueDate: Date | null;
 
-  @CreateDateColumn()
+  @Column({ type: 'uuid' })
+  ownerId: string;
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'ownerId' })
+  owner: User;
+
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 }

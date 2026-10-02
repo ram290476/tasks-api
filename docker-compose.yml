@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tasks
+      POSTGRES_PASSWORD: tasks
+      POSTGRES_DB: tasks
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U tasks -d tasks']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    init: true
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgres://tasks:tasks@db:5432/tasks
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (e.g. openssl rand -base64 48)}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

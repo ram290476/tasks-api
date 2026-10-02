@@ -36,6 +36,7 @@ export function setupSwagger(app: INestApplication) {
       .setTitle('Tasks API')
       .setDescription('A simple tasks REST API')
       .setVersion('1.0')
+      .addBearerAuth()
       .build(),
   );
   SwaggerModule.setup('docs', app, document);

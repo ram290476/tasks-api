@@ -3,10 +3,12 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   Max,
   Min,
+  MinLength,
   validateSync,
 } from 'class-validator';
 
@@ -15,6 +17,12 @@ export enum Environment {
   Production = 'production',
   Test = 'test',
 }
+
+/** "false" / "0" must not coerce to true like Boolean("false") would. */
+const ToBoolean = () =>
+  Transform(({ value }) =>
+    typeof value === 'string' ? !['false', '0', ''].includes(value) : value,
+  );
 
 export class EnvironmentVariables {
   @IsEnum(Environment)
@@ -27,15 +35,26 @@ export class EnvironmentVariables {
   PORT: number = 3000;
 
   @IsString()
-  DB_PATH: string = 'data/tasks.sqlite';
+  @IsNotEmpty()
+  DATABASE_URL: string;
 
-  /** Auto-create schema. Disable once you introduce migrations. */
-  @Transform(({ value }) =>
-    // "false" / "0" must not coerce to true like Boolean("false") would.
-    typeof value === 'string' ? !['false', '0'].includes(value) : value,
-  )
+  @ToBoolean()
   @IsBoolean()
-  DB_SYNCHRONIZE: boolean = true;
+  DB_SSL: boolean = false;
+
+  /** Apply pending migrations on startup. */
+  @ToBoolean()
+  @IsBoolean()
+  DB_MIGRATIONS_RUN: boolean = true;
+
+  @IsString()
+  @MinLength(32, { message: 'JWT_SECRET must be at least 32 characters' })
+  JWT_SECRET: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(60)
+  JWT_EXPIRES_IN_SECONDS: number = 900;
 
   @IsOptional()
   @IsString()

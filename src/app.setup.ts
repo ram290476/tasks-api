@@ -4,6 +4,7 @@ import {
   VersioningType,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import compression from 'compression';
 import helmet from 'helmet';
@@ -12,6 +13,11 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 /** Shared by main.ts and e2e tests so tests exercise the real configuration. */
 export function configureApp(app: INestApplication) {
   const config = app.get(ConfigService);
+
+  (app as NestExpressApplication).set(
+    'trust proxy',
+    config.get<number>('TRUST_PROXY_HOPS', 0),
+  );
 
   app.use(helmet());
   app.use(compression());
@@ -34,7 +40,9 @@ export function setupSwagger(app: INestApplication) {
     app,
     new DocumentBuilder()
       .setTitle('Tasks API')
-      .setDescription('A simple tasks REST API')
+      .setDescription(
+        'REST API for managing tasks. Authenticate via /v1/auth/login.',
+      )
       .setVersion('1.0')
       .addBearerAuth()
       .build(),

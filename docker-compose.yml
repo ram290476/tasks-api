@@ -3,10 +3,11 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: tasks
-      POSTGRES_PASSWORD: tasks
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD (e.g. openssl rand -hex 24)}
       POSTGRES_DB: tasks
     volumes:
       - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U tasks -d tasks']
       interval: 5s
@@ -16,10 +17,11 @@ services:
   api:
     build: .
     init: true
+    restart: unless-stopped
     ports:
       - '3000:3000'
     environment:
-      DATABASE_URL: postgres://tasks:tasks@db:5432/tasks
+      DATABASE_URL: postgres://tasks:${POSTGRES_PASSWORD}@db:5432/tasks
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (e.g. openssl rand -base64 48)}
     depends_on:
       db:

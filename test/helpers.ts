@@ -13,6 +13,7 @@ export async function resetDatabase() {
       url: process.env.DATABASE_URL!,
       ssl: false,
       migrationsRun: false,
+      poolMax: 2,
     }),
   );
   await ds.initialize();

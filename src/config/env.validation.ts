@@ -24,6 +24,16 @@ const ToBoolean = () =>
     typeof value === 'string' ? !['false', '0', ''].includes(value) : value,
   );
 
+export enum LogLevel {
+  Fatal = 'fatal',
+  Error = 'error',
+  Warn = 'warn',
+  Info = 'info',
+  Debug = 'debug',
+  Trace = 'trace',
+  Silent = 'silent',
+}
+
 export class EnvironmentVariables {
   @IsEnum(Environment)
   NODE_ENV: Environment = Environment.Development;
@@ -43,6 +53,12 @@ export class EnvironmentVariables {
   DB_SSL: boolean = false;
 
   /** Apply pending migrations on startup. */
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  DB_POOL_MAX: number = 10;
+
   @ToBoolean()
   @IsBoolean()
   DB_MIGRATIONS_RUN: boolean = true;
@@ -56,9 +72,27 @@ export class EnvironmentVariables {
   @Min(60)
   JWT_EXPIRES_IN_SECONDS: number = 900;
 
+  @IsString()
+  @IsNotEmpty()
+  JWT_ISSUER: string = 'tasks-api';
+
+  /** Comma-separated list of allowed origins. Unset = CORS disabled. */
   @IsOptional()
   @IsString()
   CORS_ORIGINS?: string;
+
+  /**
+   * Number of reverse proxies / load balancers in front of the app. Required
+   * for correct client IPs (and therefore rate limiting) behind a proxy.
+   */
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  TRUST_PROXY_HOPS: number = 0;
+
+  @IsEnum(LogLevel)
+  LOG_LEVEL: LogLevel = LogLevel.Info;
 
   @Type(() => Number)
   @IsInt()

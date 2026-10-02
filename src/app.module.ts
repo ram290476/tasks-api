@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { LoggerModule } from 'nestjs-pino';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { buildDataSourceOptions } from './database/database.config';
@@ -17,6 +18,17 @@ import { TasksModule } from './tasks/tasks.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate }),
+    LoggerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (cfg: ConfigService<EnvironmentVariables, true>) => ({
+        pinoHttp: {
+          level: cfg.get('LOG_LEVEL', { infer: true }),
+          // Never write credentials to logs.
+          redact: ['req.headers.authorization', 'req.headers.cookie'],
+          autoLogging: { ignore: (req) => req.url === '/health' },
+        },
+      }),
+    }),
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (cfg: ConfigService<EnvironmentVariables, true>) => ({
@@ -37,6 +49,7 @@ import { TasksModule } from './tasks/tasks.module';
           url: cfg.get('DATABASE_URL', { infer: true }),
           ssl: cfg.get('DB_SSL', { infer: true }),
           migrationsRun: cfg.get('DB_MIGRATIONS_RUN', { infer: true }),
+          poolMax: cfg.get('DB_POOL_MAX', { infer: true }),
         }),
     }),
     AuthModule,

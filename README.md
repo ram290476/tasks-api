@@ -8,13 +8,14 @@ A production-minded REST API built with **NestJS 11**, **PostgreSQL** (TypeORM +
 
 ```bash
 export JWT_SECRET=$(openssl rand -base64 48)
+export POSTGRES_PASSWORD=$(openssl rand -hex 24)   # hex keeps the connection URL valid
 docker compose up --build
 ```
 
 ### Local development
 
 ```bash
-cp .env.example .env           # set DATABASE_URL and JWT_SECRET
+cp .env.example .env           # fill in DATABASE_URL and JWT_SECRET (both required)
 docker compose up -d db        # or use any Postgres 13+ (expose 5432 for the default .env)
 npm install
 npm run start:dev              # migrations run automatically on startup
@@ -54,7 +55,14 @@ curl localhost:3000/v1/tasks -H "authorization: Bearer <accessToken>"
 
 ## Configuration
 
-See `.env.example`. Config is validated at boot; the app refuses to start with a missing `DATABASE_URL` or a `JWT_SECRET` shorter than 32 characters.
+See `.env.example`. Config is validated at boot; the app refuses to start with a missing `DATABASE_URL` or a `JWT_SECRET` shorter than 32 characters. No secrets have defaults.
+
+Production notes:
+
+- `TRUST_PROXY_HOPS`: set to the number of proxies/load balancers in front of the app, otherwise every client shares the proxy's IP for rate limiting.
+- `DB_SSL=true` for managed databases; `DB_POOL_MAX` sizes the connection pool (keep it below the database's connection limit divided by replica count).
+- Logs are JSON (pino) with `authorization`/`cookie` headers redacted; `LOG_LEVEL` controls verbosity. `/health` requests aren't logged.
+- Tokens carry and require the issuer set in `JWT_ISSUER`. Rotating `JWT_SECRET` invalidates all issued tokens.
 
 ## Database migrations
 
@@ -71,7 +79,8 @@ When running several replicas, set `DB_MIGRATIONS_RUN=false` and run `migration:
 ## Tests and CI
 
 ```bash
-export DATABASE_URL=postgres://postgres:postgres@localhost:5432/tasks_test   # DB is wiped on each run!
+npm test                                   # unit tests
+export DATABASE_URL=<throwaway test database URL>   # wiped on each e2e run!
 npm run test:e2e
 ```
 
@@ -83,10 +92,10 @@ Multi-stage build on `node:22-alpine`: production-only dependencies, runs as the
 
 ## Practices applied
 
-DTO validation (`whitelist` + `forbidNonWhitelisted`), env validation, URI versioning, bounded pagination with whitelisted sort fields, `helmet`, CORS allow-list, rate limiting, global exception filter, compression, health checks, OpenAPI docs, ESLint + Prettier.
+DTO validation (`whitelist` + `forbidNonWhitelisted`), env validation, structured JSON logging with secret redaction, DB pool and statement timeouts, proxy-aware rate limiting, Dependabot, URI versioning, bounded pagination with whitelisted sort fields, `helmet`, CORS allow-list, rate limiting, global exception filter, compression, health checks, OpenAPI docs, ESLint + Prettier.
 
 ## Not included yet
 
-Refresh tokens / token revocation, roles, email verification and password reset, structured logging (e.g. `nestjs-pino`), and publishing the image to a registry.
+Refresh tokens / token revocation, roles, email verification and password reset, metrics/tracing, and publishing the image to a registry.
 
 > Pinned to Nest 11 because Nest 12 is ESM-only and this project uses CommonJS + Jest.

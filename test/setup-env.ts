@@ -1,5 +1,11 @@
+import { randomBytes } from 'crypto';
+
 // Runs before test modules are imported, so ConfigModule validation sees these.
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL ??=
-  'postgres://postgres:postgres@localhost:5432/tasks_test';
-process.env.JWT_SECRET ??= 'test-secret-test-secret-test-secret-1234';
+process.env.LOG_LEVEL = 'silent';
+process.env.JWT_SECRET ??= randomBytes(32).toString('hex'); // fresh per run
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    'Set DATABASE_URL to a throwaway Postgres database (it is wiped on every e2e run).',
+  );
+}

@@ -18,6 +18,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ignoreExpiration: false,
       secretOrKey: config.get('JWT_SECRET', { infer: true }),
       algorithms: ['HS256'],
+      issuer: config.get('JWT_ISSUER', { infer: true }),
     });
   }
 

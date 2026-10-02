@@ -18,6 +18,7 @@ import { JwtStrategy } from './jwt.strategy';
         secret: cfg.get('JWT_SECRET', { infer: true }),
         signOptions: {
           algorithm: 'HS256',
+          issuer: cfg.get('JWT_ISSUER', { infer: true }),
           expiresIn: cfg.get('JWT_EXPIRES_IN_SECONDS', { infer: true }),
         },
       }),

@@ -1,11 +1,13 @@
-import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { configureApp, setupSwagger } from './app.setup';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const logger = app.get(Logger);
+  app.useLogger(logger);
   configureApp(app);
 
   const config = app.get(ConfigService);
@@ -15,7 +17,10 @@ async function bootstrap() {
 
   const port = config.get<number>('PORT', 3000);
   await app.listen(port);
-  new Logger('Bootstrap').log(`Listening on http://localhost:${port}`);
+  logger.log(`Listening on port ${port}`, 'Bootstrap');
 }
 
-void bootstrap();
+bootstrap().catch((err) => {
+  console.error('Fatal error during startup', err);
+  process.exit(1);
+});
